@@ -1,5 +1,6 @@
-fname = "V:\Russell\qPCR\Marjorie\12.18.18\2018-12-17 PACAP Cre Mice HM3DQ RiboTag cFos GAPDH.xls";
-keyname = "V:\Russell\qPCR\Marjorie\12.18.18\2018Dec17_PACAP cre mice cDNA Analysis Plate Layout.xlsx";
+folder = 'V:\Russell\qPCR\Marjorie\12.18.18';
+fname = fullfile(folder,'2018-12-17 PACAP Cre Mice HM3DQ RiboTag cFos GAPDH.xls');
+keyname = fullfile(folder,'2018Dec17_PACAP cre mice cDNA Analysis Plate Layout.xlsx');
 
 
 % opts = detectImportOptions(fname,'NumHeaderLines',35,'Sheet','Results');
@@ -113,74 +114,20 @@ g(2).facet_axes_handles.XLim = xl;
 g(1).facet_axes_handles(1).Position(3) = g(2).facet_axes_handles.Position(3)
 g(1).facet_axes_handles(end).Position(3) = g(2).facet_axes_handles.Position(3)
 
-g.export('file_name','standards','file_type','png')
-
-
-%% Plot Standards
-% figure('Position',[100,100,700,500])
-% clear g
-% g(1,1) = gramm('x',log2(t{standard_concentration<.0125,'rstq'}),'color',t{standard_concentration<.0125,'TargetName'});
-% g(1,1).stat_bin('geom','bar','nbins',50)
-% g(1,1).set_names('y','Count','x','','color','Target');
-% % g(1,1).no_legend
-% g(1,1).set_layout_options('position',[.6,0,.4,1],'legend',1)
-% g(1,1).coord_flip();
-% 
-% g(1,2) = gramm('y',c.log2_standard_concentration,'x',c.CT,'color',c.TargetName);
-% g(1,2).set_color_options('lightness_range',[30,80]);
-% g(1,2).geom_point();
-% g(1,2).stat_glm('fullrange',1);
-% g(1,2).set_names('y','Log2 concentration','x','CT','color','Target','lightness','Tm1 out of range');
-% g(1,2).set_stat_options('alpha',.3173);
-% g(1,2).set_limit_extra([.1,.1],[.1,.1]);
-% g(1,2).axe_property('XTick',0:1:100,'YTick',-10:1:10,'XGrid','on','Ygrid','on','GridColor',[0.5 0.5 0.5])
-% g(1,2).set_layout_options('position',[0,0,.6,1],'legend',0)
-% 
-% g.draw;
-% 
-% 
-% xl = [min(g(1).facet_axes_handles.XLim(1),g(2).facet_axes_handles.YLim(1))+0,...
-%     max(g(1).facet_axes_handles.XLim(2),g(2).facet_axes_handles.YLim(2))];
-%     
-% % xl = [min(t.CT)-1, max(t.CT)+1];
-% g(1).facet_axes_handles.XLim = xl;
-% g(2).facet_axes_handles.YLim = xl;
-% % g(1).facet_axes_handles.Position(3) = g(2).facet_axes_handles.Position(3)
-% 
-% 
-% g.export('file_name','standards','file_type','png')
-
-%% Plot Standards
-% figure
-% g = gramm('y',log2(standard_concentration),'x',t.CT,'color',t.TargetName,'subset',standard_concentration~=0);
-% g.set_color_options('lightness_range',[30,80]);
-% g.geom_point();
-% g.set_names('y','Log2 concentration','x','CT','color','Target','lightness','Tm1 out of range');
-% g.set_stat_options('alpha',.3173);
-% g.stat_glm();
-% g.set_limit_extra([.1,.1],[.1,.1]);
-% g.draw();
-
-% g = gram('x',t{:,'Tm1'},'y',t{:,'CT'},'color',t{:,'TargetName'});
-% g.set_color_options('lightness_range',[30,80]);
-% g.geom_point();
-% g.set_names('x','Tm1','y','CT','color','Target','lightness','Tm1 out of range');
-% g.draw();
-
-
+g.export('export_path',folder,'file_name','standards','file_type','png')
 
 %% Heatmaps
 rows = 'ABCDEFGHIJKLMNOP';
 [I,J] = ind2sub([24,16],t.Well);
 t.I = I;
 t.J = rows(J)';
-for i = {'CT','Tm1','WithinTM'}
+for i = {'CT','Tm1'}
 figure('position',[100 100 1200 600],'color','w');
 heatmap(t,'I','J','ColorVariable',i,'Title',i);
 colormap(inferno);
 ylabel('Row');
 xlabel('Column');
-export_fig([i{1} '.png'])
+export_fig(fullfile(folder,[i{1} '.png']),'-m3');
 end
 
 
@@ -196,67 +143,29 @@ func = @(CT,rstq,rstq_efficiency_2) deal(...
 a = rowfun(func,t,'GroupingVariables',GroupingVariables,'InputVariables',InputVariables,'OutputVariableNames',OutputVariableNames);
 
 %% Get the other key
-
+k2.Properties.VariableNames(1) = {'SampleID'};
 k2.SampleID = categorical(k2.SampleID);
 j = innerjoin(k2,a,'Keys','SampleID');
 
 %% Save
 j.GroupCount = [];
 j = sortrows(j,{'TargetName','SampleID'});
-[fname,fpath] = uiputfile('*.xlsx');
+[fname,fpath] = uiputfile(fullfile(folder,'Output.xlsx'));
 writetable(j,[fpath,fname]);
 
 
 figure
-g = gram('x',j.Sample,'y',j.rstq,'color',j.Group);
-% g.geom_jitter;
-g.facet_grid([],j.TargetName,'scale','independent')
-g.stat_summary('geom',{'bar','black_errorbar'});
-% g.axe_property('YScale', 'log')
-g.draw;
-
-figure
-g = gram('x',j.Sample,'y',j.rstq,'group',cellfun(@(x) x(1:6),cellstr(j.SampleID),'UniformOutput',0),'color',j.Group)
+g = gram('x',j.type,'y',j.rstq,'group',cellfun(@(x) x(1:6),cellstr(j.SampleID),'UniformOutput',0),'lightness',j.Group,'color',j.Virus)
 g.geom_line
 g.axe_property('YScale', 'log')
 % g.set_limit_extra([.1,.1],[1,1]);
 
 g.facet_grid([],j.TargetName,'scale','free')
-g.set_names('x','','y','RSTQ','column','','color','ID');
-% g.no_legend
+g.set_names('x','','y','RSTQ','column','','color','ID','Lightness','Group');
+g.set_color_options('lightness_range',[75,25])
 g.geom_point
 g.draw
-g.export('file_name','Graphs','file_type','png')
-
-
-
-
-figure
-g = gram('x',j.TargetName,'y',j.rstq,'group',j.ID,'lightness',j.Sample,'subset',j.TargetName == 'Cas9' | j.TargetName == 'FKBP5','color',j.ID)
-g.geom_line
-g.geom_point
-g.axe_property('YScale', 'log')
-% g.facet_grid([],j.TargetName,'scale','free')
-g.set_names('x','','y','RSTQ','column','');
-% g.no_legend
-g.draw
-
-
-z = unstack(j(:,{'ID','rstq','Sample','TargetName'}),'rstq','TargetName')
-figure
-g = gram('x',z.CRE,'y',z.FKBP5,'z',z.Cas9,'group',z.ID)
-g.geom_line
-g.axe_property('YScale', 'log','ZScale', 'log','XScale', 'log')
-% g.facet_grid([],j.TargetName,'scale','free')
-g.set_names('x','CRE','y','FKBP5','z','Cas9');
-% g.no_legend
-g.draw
-g.update('color',z.Sample)
-g.geom_point
-g.set_point_options('base_size',8)
-g.draw
-
-
+g.export('export_path',folder,'file_name','Graphs','file_type','png')
 
 
 
